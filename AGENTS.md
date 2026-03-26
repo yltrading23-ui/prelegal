@@ -88,6 +88,14 @@ Backend available at http://localhost:8000
 - `TEMPLATES_DIR` env var added to docker-compose.yml for Docker deployments
 - 28 passing tests (`backend/test_main.py` + `backend/test_chat.py`)
 
+### Completed (DEV-9)
+- **Auth gate**: sign in / sign up form (tabbed) shown to unauthenticated users; `/api/auth/me` checked on load with a loading splash to avoid flash of content
+- **Header polish**: logged-in user's email shown; Sign Out button clears session and returns to auth form; "Saving…" / "Saved" status indicator appears when auto-saving
+- **New Document button**: resets all chat, field, and preview state and re-fetches the greeting
+- **Auto-save**: document automatically saved to the user's account via `POST /api/documents` when the AI marks `isComplete`
+- **My Documents modal**: lists user's saved documents (title, type, date); View button loads saved HTML into preview iframe; "Back to Live Preview" returns to active session
+- 28 passing tests (no new backend tests required; auth/CRUD already covered)
+
 ### Current API Endpoints
 - `POST /api/auth/signup` - Create new user account
 - `POST /api/auth/signin` - Sign in and receive JWT cookie
