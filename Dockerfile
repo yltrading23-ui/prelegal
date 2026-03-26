@@ -27,7 +27,8 @@ RUN uv pip install --system -r pyproject.toml 2>/dev/null || \
         "python-multipart>=0.0.9" \
         "aiofiles>=23.0.0" \
         "litellm>=1.40.0" \
-        "python-dotenv>=1.0.0"
+        "python-dotenv>=1.0.0" \
+        "email-validator>=2.0.0"
 
 COPY backend/ ./
 
