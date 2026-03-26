@@ -440,9 +440,12 @@ export default function Home() {
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Live Preview</span>
               <span className="text-xs text-slate-400">Fields highlighted in amber are unfilled</span>
             </div>
-            <div
-              className="bg-white rounded-lg shadow-sm ring-1 ring-slate-200 px-12 py-10"
-              dangerouslySetInnerHTML={{ __html: ndaHtml(f) }}
+            <iframe
+              srcDoc={ndaHtml(f)}
+              title="NDA Preview"
+              scrolling="no"
+              className="w-full rounded-lg shadow-sm ring-1 ring-slate-200 bg-white"
+              style={{ height: "1900px", border: "none" }}
             />
           </div>
         </main>
