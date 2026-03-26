@@ -31,6 +31,7 @@ RUN uv pip install --system -r pyproject.toml 2>/dev/null || \
         "email-validator>=2.0.0"
 
 COPY backend/ ./
+COPY templates/ ./templates/
 
 # Copy built frontend static files
 COPY --from=frontend-builder /build/frontend/out /app/static

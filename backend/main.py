@@ -17,7 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 
 from auth import create_token, decode_token, hash_password, verify_password
-from chat import GREETING, NDAFields, process_message
+from chat import DOCUMENT_CATALOG, GREETING, process_message
+from render import render_html
 from database import get_connection, init_db
 
 STATIC_DIR = os.getenv("STATIC_DIR", "/app/static")
@@ -254,6 +255,12 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
+    documentType: Optional[str] = None
+    fields: dict = {}
+
+
+class PreviewRequest(BaseModel):
+    documentType: str
     fields: dict = {}
 
 
@@ -266,19 +273,34 @@ def chat_greeting():
 def chat_message(body: ChatRequest):
     messages = [{"role": m.role, "content": m.content} for m in body.messages]
     try:
-        result = process_message(messages, body.fields)
+        result = process_message(messages, body.documentType, body.fields)
         return {
             "message": result.assistantMessage,
-            "fields": result.model_dump(exclude={"assistantMessage", "isComplete"}),
+            "documentType": result.documentType,
+            "fields": result.fields,
             "isComplete": result.isComplete,
+            "unsupported": result.unsupported,
+            "suggestedType": result.suggestedType,
         }
     except Exception as e:
         logger.error("Chat error: %s", e, exc_info=True)
         return {
             "message": "I'm having trouble connecting to my AI service right now. Please check that the OPENROUTER_API_KEY is set and try again.",
+            "documentType": body.documentType,
             "fields": body.fields,
             "isComplete": False,
+            "unsupported": False,
+            "suggestedType": None,
         }
+
+
+@app.post("/api/document/preview")
+def document_preview(body: PreviewRequest):
+    info = DOCUMENT_CATALOG.get(body.documentType)
+    if not info:
+        raise HTTPException(status_code=404, detail=f"Unknown document type: {body.documentType}")
+    html = render_html(body.documentType, body.fields, info["template_field_map"])
+    return {"html": html}
 
 
 # ---------------------------------------------------------------------------
