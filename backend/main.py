@@ -1,7 +1,14 @@
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from typing import Optional
+
+from dotenv import load_dotenv
+
+load_dotenv()  # load .env for non-Docker environments
+
+logger = logging.getLogger(__name__)
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 
 from auth import create_token, decode_token, hash_password, verify_password
+from chat import GREETING, NDAFields, process_message
 from database import get_connection, init_db
 
 STATIC_DIR = os.getenv("STATIC_DIR", "/app/static")
@@ -233,6 +241,44 @@ def delete_document(doc_id: int, current_user=Depends(get_current_user)):
         conn.commit()
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Chat routes
+# ---------------------------------------------------------------------------
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    fields: dict = {}
+
+
+@app.get("/api/chat/greeting")
+def chat_greeting():
+    return {"message": GREETING}
+
+
+@app.post("/api/chat/message")
+def chat_message(body: ChatRequest):
+    messages = [{"role": m.role, "content": m.content} for m in body.messages]
+    try:
+        result = process_message(messages, body.fields)
+        return {
+            "message": result.assistantMessage,
+            "fields": result.model_dump(exclude={"assistantMessage", "isComplete"}),
+            "isComplete": result.isComplete,
+        }
+    except Exception as e:
+        logger.error("Chat error: %s", e, exc_info=True)
+        return {
+            "message": "I'm having trouble connecting to my AI service right now. Please check that the OPENROUTER_API_KEY is set and try again.",
+            "fields": body.fields,
+            "isComplete": False,
+        }
 
 
 # ---------------------------------------------------------------------------
