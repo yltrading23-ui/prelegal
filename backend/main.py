@@ -1,7 +1,14 @@
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from typing import Optional
+
+from dotenv import load_dotenv
+
+load_dotenv()  # load .env for non-Docker environments
+
+logger = logging.getLogger(__name__)
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -258,12 +265,20 @@ def chat_greeting():
 @app.post("/api/chat/message")
 def chat_message(body: ChatRequest):
     messages = [{"role": m.role, "content": m.content} for m in body.messages]
-    result = process_message(messages, body.fields)
-    return {
-        "message": result.assistantMessage,
-        "fields": result.model_dump(exclude={"assistantMessage", "isComplete"}),
-        "isComplete": result.isComplete,
-    }
+    try:
+        result = process_message(messages, body.fields)
+        return {
+            "message": result.assistantMessage,
+            "fields": result.model_dump(exclude={"assistantMessage", "isComplete"}),
+            "isComplete": result.isComplete,
+        }
+    except Exception as e:
+        logger.error("Chat error: %s", e, exc_info=True)
+        return {
+            "message": "I'm having trouble connecting to my AI service right now. Please check that the OPENROUTER_API_KEY is set and try again.",
+            "fields": body.fields,
+            "isComplete": False,
+        }
 
 
 # ---------------------------------------------------------------------------
